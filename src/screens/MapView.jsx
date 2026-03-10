@@ -90,16 +90,17 @@ export default function MapView() {
       {/* Map + legend row */}
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-4 gap-4 min-h-0" style={{ minHeight: 480 }}>
         {/* Map */}
-        <div className="lg:col-span-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(29,111,164,0.3)' }}>
+        <div className="lg:col-span-3 rounded-xl overflow-hidden" style={{ border: '1px solid rgba(29,111,164,0.3)', height: 540 }}>
           <MapContainer
             center={PLYMOUTH_CENTER}
             zoom={13}
-            style={{ height: '100%', width: '100%', minHeight: 480 }}
+            style={{ height: 540, width: '100%' }}
             zoomControl={true}
           >
             <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org">OpenStreetMap</a>'
-              url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              maxZoom={19}
             />
             {sensors.map((sensor, idx) => {
               const val = avgForSensor(sensor.id);
