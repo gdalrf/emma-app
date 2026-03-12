@@ -1,13 +1,14 @@
 import { useState } from 'react';
 
 const navItems = [
-  { id: 'dashboard', label: 'Dashboard',        icon: HomeIcon },
-  { id: 'map',       label: 'Map View',          icon: MapIcon },
-  { id: 'emissions', label: 'Live Emissions',    icon: ChartIcon },
-  { id: 'replay',    label: 'Emissions Replay',  icon: ReplayIcon },
-  { id: 'vessels',   label: 'Vessel Metrics',    icon: ShipIcon },
-  { id: 'reports',   label: 'Reports',           icon: ReportIcon },
-  { id: 'settings',  label: 'Settings',          icon: SettingsIcon },
+  { id: 'dashboard',  label: 'Dashboard',          icon: HomeIcon },
+  { id: 'map',        label: 'Map View',            icon: MapIcon },
+  { id: 'emissions',  label: 'Live Emissions',      icon: ChartIcon },
+  { id: 'replay',     label: 'Emissions Replay',    icon: ReplayIcon },
+  { id: 'vessels',    label: 'Vessel Metrics',      icon: ShipIcon },
+  { id: 'planner',    label: 'Investment Planner',  icon: PlannerIcon },
+  { id: 'reports',    label: 'Reports',             icon: ReportIcon },
+  { id: 'settings',   label: 'Settings',            icon: SettingsIcon },
 ];
 
 export default function Layout({ page, onNavigate, onLogout, children }) {
@@ -164,6 +165,13 @@ function CollapseIcon({ size = 16, flipped }) {
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"
       style={{ transform: flipped ? 'rotate(180deg)' : 'none', transition: 'transform 0.3s' }}>
       <polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/>
+    </svg>
+  );
+}
+function PlannerIcon({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/>
     </svg>
   );
 }

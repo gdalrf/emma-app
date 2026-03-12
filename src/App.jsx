@@ -8,6 +8,7 @@ import VesselMetrics from './screens/VesselMetrics';
 import ReportGenerator from './screens/ReportGenerator';
 import Settings from './screens/Settings';
 import EmissionsReplay from './screens/EmissionsReplay';
+import InvestmentPlanner from './screens/InvestmentPlanner';
 
 export default function App() {
   const [authed, setAuthed] = useState(false);
@@ -21,6 +22,7 @@ export default function App() {
     emissions:    <LiveEmissions />,
     replay:       <EmissionsReplay />,
     vessels:      <VesselMetrics />,
+    planner:      <InvestmentPlanner />,
     reports:      <ReportGenerator />,
     settings:     <Settings />,
   };
