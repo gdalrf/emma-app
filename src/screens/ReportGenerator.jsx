@@ -4,8 +4,8 @@ import {
   ResponsiveContainer, Legend, PieChart, Pie, Cell,
 } from 'recharts';
 import {
-  sensors, vessels, pollutants, pollutantColors, sensorReadings,
-  vesselEmissions, getPortKPIs,
+  sensors, vessels, pollutants, pollutantColors, pollutantType, pollutantLabel,
+  pollutantLimits, sensorReadings, vesselEmissions, getPortKPIs,
 } from '../data/mockData';
 import { PORT_BASELINE, YOY_TREND, SHORE_POWER_IMPACT } from '../data/investmentData';
 
@@ -32,9 +32,10 @@ export default function ReportGenerator() {
     return {
       name: v.name.replace(/^(MV|FV|PS|SV|RFA|TSS) /, ''),
       miles: reads.reduce((a, r) => a + r.miles, 0),
-      CO2: +(reads.reduce((a, r) => a + r.CO2, 0) / reads.length).toFixed(1),
+      NO2: +(reads.reduce((a, r) => a + r.NO2, 0) / reads.length).toFixed(1),
+      'PM2.5': +(reads.reduce((a, r) => a + r['PM2.5'], 0) / reads.length).toFixed(1),
     };
-  }).sort((a, b) => b.CO2 - a.CO2);
+  }).sort((a, b) => b.NO2 - a.NO2);
 
   // Pollutant share pie
   const pieData = pollutants.slice(0, 6).map(p => ({
@@ -43,8 +44,8 @@ export default function ReportGenerator() {
   }));
 
   // Source breakdown chart data (shipping / road / background)
-  const sourceBreakdownData = ['NOx', 'NO2', 'PM25', 'SOx'].map(p => ({
-    name: p,
+  const sourceBreakdownData = ['NOx', 'NO2', 'PM25', 'PM10', 'SO2'].map(p => ({
+    name: p === 'PM25' ? 'PM2.5' : p,
     Shipping:   PORT_BASELINE[p].shipping,
     Road:       PORT_BASELINE[p].road,
     Background: PORT_BASELINE[p].background,
@@ -172,7 +173,7 @@ export default function ReportGenerator() {
       pdf.setFontSize(8);
       pdf.setTextColor(148, 163, 184);
       const yCols = [M + 5, M + 35, M + 65, M + 90, M + 115, M + 140];
-      ['Year','NOx','NO2','PM2.5','CO2','SOx'].forEach((h, j) => pdf.text(h, yCols[j], y + 5));
+      ['Year','NOx','NO2','PM2.5','PM10','SO2'].forEach((h, j) => pdf.text(h, yCols[j], y + 5));
       y += 8;
 
       YOY_TREND.forEach((row, i) => {
@@ -182,7 +183,7 @@ export default function ReportGenerator() {
         pdf.setFontSize(8);
         pdf.setTextColor(30, 41, 59);
         pdf.text(row.year, yCols[0], y + 5);
-        [row.NOx, row.NO2, row.PM25, row.CO2, row.SOx].forEach((v, j) => {
+        [row.NOx, row.NO2, row.PM25, row.PM10, row.SO2].forEach((v, j) => {
           const trend = v < 100 ? [16, 185, 129] : v > 102 ? [239, 68, 68] : [100, 116, 139];
           pdf.setTextColor(...trend);
           pdf.text(String(v), yCols[j + 1], y + 5);
@@ -335,9 +336,9 @@ export default function ReportGenerator() {
         <div>
           <SectionTitle>1. Executive Summary</SectionTitle>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-            <KPIBox label="Total CO₂" value={kpi.totalCO2.toLocaleString()} unit="ppm-m" color="#10b981" />
             <KPIBox label="Avg NO₂" value={kpi.avgNO2} unit="µg/m³" color="#f59e0b" />
-            <KPIBox label="Avg PM2.5" value={kpi.avgPM25} unit="µg/m³" color="#06b6d4" />
+            <KPIBox label="Avg PM2.5" value={kpi.avgPM25} unit="µg/m³" color="#a78bfa" />
+            <KPIBox label="Avg PM10" value={kpi.avgPM10} unit="µg/m³" color="#6366f1" />
             <KPIBox label="Vessels" value={kpi.activeVessels} unit="monitored" color="#8b5cf6" />
           </div>
           <div className="mt-3 p-4 rounded-lg text-sm leading-relaxed" style={{ background:'#060e19', color:'#94a3b8' }}>
@@ -345,8 +346,9 @@ export default function ReportGenerator() {
               This report summarises port-wide emissions data collected across {sensors.length} sensor locations
               at Plymouth Harbour over the {period}-month reporting period. A total of {kpi.activeVessels} vessels
               were tracked, collectively logging {kpi.totalMiles.toLocaleString()} nautical miles. Average NO₂
-              concentrations of {kpi.avgNO2} µg/m³ remain within EU Air Quality Directive thresholds (200 µg/m³),
-              and PM2.5 levels of {kpi.avgPM25} µg/m³ are below the WHO interim target of 15 µg/m³.
+              concentrations of {kpi.avgNO2} µg/m³ are measured directly at harbour sensors (UK annual mean limit: 40 µg/m³).
+              PM2.5 levels of {kpi.avgPM25} µg/m³ are within the WHO interim target of 15 µg/m³.
+              SO₂ ({kpi.avgSO2} µg/m³) is a modelled estimate derived from vessel fuel type and activity data.
             </p>
           </div>
         </div>
@@ -369,32 +371,36 @@ export default function ReportGenerator() {
                 <YAxis tick={{ fill:'#64748b', fontSize:10 }} axisLine={false} tickLine={false} />
                 <Tooltip contentStyle={{ background:'#0a1628', border:'1px solid #1d6fa4', borderRadius:8, fontSize:11 }} />
                 <Legend wrapperStyle={{ fontSize:11, color:'#94a3b8' }} />
-                {['NO2','NOx','SO2','CO2'].map(p => (
-                  <Line key={p} type="monotone" dataKey={p} stroke={pollutantColors[p]} strokeWidth={1.8} dot={false} />
+                {['NO2','NO','PM2.5','PM10'].map(p => (
+                  <Line key={p} type="monotone" dataKey={p} name={pollutantLabel[p]}
+                    stroke={pollutantColors[p]} strokeWidth={1.8} dot={false}
+                    strokeDasharray={pollutantType[p] !== 'measured' ? '5 3' : undefined} />
                 ))}
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* 3. CO2 bar chart */}
+        {/* 3. PM2.5 / PM10 bar chart */}
         <div>
           <div className="flex items-center justify-between">
-            <SectionTitle>3. Monthly CO₂ Concentrations</SectionTitle>
-            <button onClick={() => downloadChart('chart-co2', 'CO2_Monthly')}
+            <SectionTitle>3. Monthly PM2.5 &amp; PM10 Concentrations</SectionTitle>
+            <button onClick={() => downloadChart('chart-pm', 'PM_Monthly')}
               className="text-xs px-2 py-1 rounded transition"
               style={{ color:'#60a5fa', background:'rgba(29,111,164,0.15)' }}>
               ⬇ PNG
             </button>
           </div>
-          <div id="chart-co2" className="mt-3 p-3 rounded-lg" style={{ background:'#060e19' }}>
+          <div id="chart-pm" className="mt-3 p-3 rounded-lg" style={{ background:'#060e19' }}>
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={months} margin={{ top:0, right:8, left:-10, bottom:0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(29,111,164,0.12)" />
                 <XAxis dataKey="label" tick={{ fill:'#64748b', fontSize:10 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill:'#64748b', fontSize:10 }} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={{ background:'#0a1628', border:'1px solid #10b981', borderRadius:6, fontSize:11 }} />
-                <Bar dataKey="CO2" fill="#10b981" radius={[3,3,0,0]} />
+                <Tooltip contentStyle={{ background:'#0a1628', border:'1px solid #a78bfa', borderRadius:6, fontSize:11 }} />
+                <Legend wrapperStyle={{ fontSize:11, color:'#94a3b8' }} />
+                <Bar dataKey="PM2.5" name="PM2.5 (measured)" fill="#a78bfa" radius={[3,3,0,0]} />
+                <Bar dataKey="PM10"  name="PM10 (measured)"  fill="#6366f1" radius={[3,3,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -429,7 +435,7 @@ export default function ReportGenerator() {
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ background:'#060e19' }}>
-                  {['Vessel','Type','Flag','Miles (nm)','Avg CO₂ (ppm)'].map(h => (
+                  {['Vessel','Type','Flag','Miles (nm)','Avg NO₂ (µg/m³)','Avg PM2.5 (µg/m³)'].map(h => (
                     <th key={h} className="px-3 py-2.5 text-left font-semibold" style={{ color:'#64748b' }}>{h}</th>
                   ))}
                 </tr>
@@ -441,7 +447,8 @@ export default function ReportGenerator() {
                     <td className="px-3 py-2" style={{ color:'#94a3b8' }}>{vessels[i]?.type}</td>
                     <td className="px-3 py-2 font-mono" style={{ color:'#64748b' }}>{vessels[i]?.flag}</td>
                     <td className="px-3 py-2 font-mono text-right" style={{ color:'#60a5fa' }}>{v.miles.toLocaleString()}</td>
-                    <td className="px-3 py-2 font-mono text-right font-bold" style={{ color:'#10b981' }}>{v.CO2}</td>
+                    <td className="px-3 py-2 font-mono text-right font-bold" style={{ color:'#f59e0b' }}>{v.NO2}</td>
+                    <td className="px-3 py-2 font-mono text-right" style={{ color:'#a78bfa' }}>{v['PM2.5']}</td>
                   </tr>
                 ))}
               </tbody>
@@ -454,10 +461,10 @@ export default function ReportGenerator() {
           <SectionTitle>6. Regulatory Compliance</SectionTitle>
           <div className="mt-3 space-y-2">
             {[
-              { pollutant:'NO₂',   limit:'200 µg/m³', actual:`${kpi.avgNO2} µg/m³`,  ok: kpi.avgNO2 < 200,  ref:'EU AAQ Directive' },
-              { pollutant:'SOx',   limit:'350 µg/m³', actual:`${kpi.avgSOx} µg/m³`,  ok: kpi.avgSOx < 350,  ref:'EU AAQ Directive' },
-              { pollutant:'PM2.5', limit:'25 µg/m³',  actual:`${kpi.avgPM25} µg/m³`, ok: kpi.avgPM25 < 25,  ref:'WHO AQG 2021' },
-              { pollutant:'CO₂',   limit:'1000 ppm',  actual:`${(kpi.totalCO2/sensors.length/period).toFixed(0)} ppm`, ok:true, ref:'MARPOL Annex VI' },
+              { pollutant:'NO₂',   limit:'40 µg/m³',  actual:`${kpi.avgNO2} µg/m³`,  ok: kpi.avgNO2 < 40,   ref:'UK annual mean limit' },
+              { pollutant:'PM2.5', limit:'20 µg/m³',  actual:`${kpi.avgPM25} µg/m³`, ok: kpi.avgPM25 < 20,  ref:'UK annual mean limit (2024)' },
+              { pollutant:'PM10',  limit:'40 µg/m³',  actual:`${kpi.avgPM10} µg/m³`, ok: kpi.avgPM10 < 40,  ref:'UK annual mean limit' },
+              { pollutant:'SO₂ (modelled)', limit:'125 µg/m³', actual:`${kpi.avgSO2} µg/m³`, ok: kpi.avgSO2 < 125, ref:'UK 24-hr mean · MARPOL Annex VI' },
             ].map(row => (
               <div key={row.pollutant} className="flex items-center justify-between rounded-lg px-4 py-2.5"
                 style={{ background:'#060e19', border:`1px solid ${row.ok ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.3)'}` }}>
@@ -483,7 +490,7 @@ export default function ReportGenerator() {
             </button>
           </div>
           <p className="text-xs mt-2 mb-3" style={{ color:'#64748b' }}>
-            Annual emissions (tonnes/yr) attributed by source sector. Shipping accounts for the majority of NOx and SOx in the port area.
+            Annual emissions (tonnes/yr) attributed by source sector. Shipping accounts for the majority of NOx and SO₂ in the port area. SO₂ values are modelled estimates.
           </p>
           <div id="chart-source" className="p-3 rounded-lg" style={{ background:'#060e19' }}>
             <ResponsiveContainer width="100%" height={220}>
@@ -502,7 +509,7 @@ export default function ReportGenerator() {
           {/* Source breakdown mini table */}
           <div className="mt-3 grid grid-cols-3 gap-2 text-xs">
             {[
-              { label:'Shipping', pct:'60–89%', color:'#1d6fa4', note:'Dominant for NOx, SOx' },
+              { label:'Shipping', pct:'60–89%', color:'#1d6fa4', note:'Dominant for NOx, SO₂' },
               { label:'Road Traffic', pct:'3–30%', color:'#f59e0b', note:'Dominant for PM2.5' },
               { label:'Background', pct:'8–12%', color:'#475569', note:'Marine aerosol, other' },
             ].map(s => (
@@ -537,19 +544,19 @@ export default function ReportGenerator() {
                 <Tooltip contentStyle={{ background:'#0a1628', border:'1px solid #1d6fa4', borderRadius:8, fontSize:11 }} />
                 <Legend wrapperStyle={{ fontSize:11, color:'#94a3b8' }} />
                 {/* Baseline reference line at 100 */}
-                <Line type="monotone" dataKey="NOx"  stroke="#f59e0b" strokeWidth={2} dot={{ r:3 }} />
-                <Line type="monotone" dataKey="NO2"  stroke="#ef4444" strokeWidth={2} dot={{ r:3 }} />
-                <Line type="monotone" dataKey="PM25" stroke="#06b6d4" strokeWidth={2} dot={{ r:3 }} strokeDasharray="4 2" />
-                <Line type="monotone" dataKey="SOx"  stroke="#8b5cf6" strokeWidth={2} dot={{ r:3 }} />
+                <Line type="monotone" dataKey="NOx"  name="NOx (derived)"    stroke="#ef4444" strokeWidth={2} dot={{ r:3 }} strokeDasharray="5 3" />
+                <Line type="monotone" dataKey="NO2"  name="NO₂ (measured)"   stroke="#f59e0b" strokeWidth={2} dot={{ r:3 }} />
+                <Line type="monotone" dataKey="PM25" name="PM2.5 (measured)"  stroke="#a78bfa" strokeWidth={2} dot={{ r:3 }} />
+                <Line type="monotone" dataKey="SO2"  name="SO₂ (modelled)"   stroke="#60a5fa" strokeWidth={2} dot={{ r:3 }} strokeDasharray="5 3" />
               </LineChart>
             </ResponsiveContainer>
           </div>
           <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
             {[
-              { label:'NOx 5yr trend', value:'-11 pts', color:'#f59e0b' },
-              { label:'NO2 5yr trend', value:'-13 pts', color:'#ef4444' },
-              { label:'PM2.5 5yr trend', value:'-10 pts', color:'#06b6d4' },
-              { label:'SOx 5yr trend', value:'-24 pts', color:'#8b5cf6' },
+              { label:'NOx 5yr trend', value:'-11 pts', color:'#ef4444' },
+              { label:'NO₂ 5yr trend', value:'-13 pts', color:'#f59e0b' },
+              { label:'PM2.5 5yr trend', value:'-10 pts', color:'#a78bfa' },
+              { label:'SO₂ 5yr trend', value:'-24 pts', color:'#60a5fa' },
             ].map(t => (
               <div key={t.label} className="rounded-lg p-2.5 text-center" style={{ background:'#060e19' }}>
                 <p style={{ color:'#64748b' }}>{t.label}</p>

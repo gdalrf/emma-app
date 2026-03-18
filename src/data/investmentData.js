@@ -12,7 +12,7 @@ export const INFRA_TYPES = [
     costM: 2.8,
     annualSavingM: 0.35,
     paybackYears: 8,
-    reductions: { NOx: 42, NO2: 38, PM25: 35, CO2: 55, SOx: 70 },
+    reductions: { NOx: 42, NO2: 38, PM25: 35, CO2: 55, SO2: 70 },
     primaryPollutant: 'NOx',
     description: 'Allows berthed vessels to connect to shore grid and shut off auxiliary engines, eliminating hoteling emissions. Each berth unit costs ~£1.4M. Suitable for Ferry and RoRo berths.',
     category: 'Electrification',
@@ -27,7 +27,7 @@ export const INFRA_TYPES = [
     costM: 6.2,
     annualSavingM: 0.41,
     paybackYears: 15,
-    reductions: { NOx: 68, NO2: 65, PM25: 72, CO2: 78, SOx: 95 },
+    reductions: { NOx: 68, NO2: 65, PM25: 72, CO2: 78, SO2: 95 },
     primaryPollutant: 'CO2',
     description: 'Green hydrogen bunkering facility enabling zero-emission propulsion for fuel-cell enabled vessels. Aligns with UK Hydrogen Strategy 2030 and Clean Maritime Plan.',
     category: 'Alternative Fuels',
@@ -42,7 +42,7 @@ export const INFRA_TYPES = [
     costM: 0.4,
     annualSavingM: 0.13,
     paybackYears: 3,
-    reductions: { NOx: 18, NO2: 22, PM25: 15, CO2: 8, SOx: 10 },
+    reductions: { NOx: 18, NO2: 22, PM25: 15, CO2: 8, SO2: 10 },
     primaryPollutant: 'NO2',
     description: 'Restricts highest-emitting vessel classes from sensitive berths. Includes signage, AIS monitoring, emissions certificate requirements, and graduated penalty schedule.',
     category: 'Regulation',
@@ -57,9 +57,9 @@ export const INFRA_TYPES = [
     costM: 3.5,
     annualSavingM: 0.33,
     paybackYears: 10,
-    reductions: { NOx: 25, NO2: 20, PM25: 30, CO2: 5, SOx: 88 },
-    primaryPollutant: 'SOx',
-    description: 'Port-administered subsidy scheme for vessel operators to install IMO-compliant EGCS scrubbers. Particularly effective for SOx and PM2.5 reduction from HFO-burning vessels.',
+    reductions: { NOx: 25, NO2: 20, PM25: 30, CO2: 5, SO2: 88 },
+    primaryPollutant: 'SO2',
+    description: 'Port-administered subsidy scheme for vessel operators to install IMO-compliant EGCS scrubbers. Particularly effective for SO2 and PM2.5 reduction from HFO-burning vessels.',
     category: 'Vessel Retrofit',
     fundingStreams: ['MCA MSES Fund', 'UKRI Net Zero Marine'],
   },
@@ -72,7 +72,7 @@ export const INFRA_TYPES = [
     costM: 0.8,
     annualSavingM: 0.09,
     paybackYears: 9,
-    reductions: { NOx: 0, NO2: 0, PM25: 0, CO2: 0, SOx: 0 },
+    reductions: { NOx: 0, NO2: 0, PM25: 0, CO2: 0, SO2: 0 },
     primaryPollutant: null,
     description: 'Adds 6 additional sensor nodes and real-time calibration. Enables source-attribution accuracy for enforcement, insurance mitigation, and funding evidence generation.',
     category: 'Data Infrastructure',
@@ -113,17 +113,17 @@ export const PORT_BASELINE = {
   NOx:  { shipping: 420, road: 190, background: 85,  total: 695  },
   NO2:  { shipping: 280, road: 145, background: 60,  total: 485  },
   PM25: { shipping: 95,  road: 72,  background: 38,  total: 205  },
-  CO2:  { shipping: 18400, road: 6800, background: 2200, total: 27400 },
-  SOx:  { shipping: 310, road: 12,  background: 28,  total: 350  },
+  PM10: { shipping: 140, road: 95,  background: 55,  total: 290  },
+  SO2:  { shipping: 310, road: 12,  background: 28,  total: 350  },
 };
 
 // Mock year-on-year emission indices (2022 = 100 baseline)
 export const YOY_TREND = [
-  { year: '2021', NOx: 92,  NO2: 88,  PM25: 95, CO2: 97, SOx: 112 },
-  { year: '2022', NOx: 100, NO2: 100, PM25: 100, CO2: 100, SOx: 100 },
-  { year: '2023', NOx: 98,  NO2: 95,  PM25: 96, CO2: 98, SOx: 88 },
-  { year: '2024', NOx: 94,  NO2: 91,  PM25: 93, CO2: 95, SOx: 82 },
-  { year: '2025', NOx: 89,  NO2: 87,  PM25: 90, CO2: 92, SOx: 76 },
+  { year: '2021', NOx: 92,  NO2: 88,  PM25: 95, PM10: 97,  SO2: 112 },
+  { year: '2022', NOx: 100, NO2: 100, PM25: 100, PM10: 100, SO2: 100 },
+  { year: '2023', NOx: 98,  NO2: 95,  PM25: 96, PM10: 96,  SO2: 88  },
+  { year: '2024', NOx: 94,  NO2: 91,  PM25: 93, PM10: 93,  SO2: 82  },
+  { year: '2025', NOx: 89,  NO2: 87,  PM25: 90, PM10: 90,  SO2: 76  },
 ];
 
 // Before/after comparison data (index points) for a typical shore-power installation
@@ -155,7 +155,7 @@ export function calcTotalImpact(placedItems) {
   const totalAnnualSaving = types.reduce((a, t) => a + t.annualSavingM, 0);
 
   // Compound reductions
-  const pollutants = ['NOx', 'NO2', 'PM25', 'CO2', 'SOx'];
+  const pollutants = ['NOx', 'NO2', 'PM25', 'CO2', 'SO2'];
   const reductions = {};
   pollutants.forEach(p => {
     let remaining = 1;

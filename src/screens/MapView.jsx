@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, useMap } from 'react-leaf
 import 'leaflet/dist/leaflet.css';
 import {
   sensors, pollutants, pollutantColors, pollutantUnits, pollutantThresholds,
+  pollutantType, pollutantLabel, pollutantLimits,
   sensorReadings, getLatestReading, vessels,
 } from '../data/mockData';
 
@@ -71,20 +72,29 @@ export default function MapView() {
       </div>
 
       {/* Pollutant toggles */}
-      <div className="flex flex-wrap gap-2">
-        {pollutants.map(p => (
-          <button
-            key={p}
-            onClick={() => setActivePollutant(p)}
-            className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-            style={{
-              background: activePollutant === p ? pollutantColors[p] : 'rgba(29,111,164,0.1)',
-              color: activePollutant === p ? '#fff' : '#94a3b8',
-              border: `1px solid ${activePollutant === p ? pollutantColors[p] : 'rgba(29,111,164,0.3)'}`,
-            }}>
-            {p}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2 items-center">
+        {pollutants.map(p => {
+          const pType = pollutantType[p];
+          const isActive = activePollutant === p;
+          return (
+            <button
+              key={p}
+              onClick={() => setActivePollutant(p)}
+              className="px-3 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1"
+              style={{
+                background: isActive ? pollutantColors[p] : 'rgba(29,111,164,0.1)',
+                color: isActive ? '#fff' : '#94a3b8',
+                border: `1px ${pType === 'modelled' ? 'dashed' : 'solid'} ${isActive ? pollutantColors[p] : 'rgba(29,111,164,0.3)'}`,
+              }}>
+              {p === 'NOx' ? 'NOx*' : p}
+              {pType === 'modelled' && (
+                <span className="text-xs font-bold px-1 rounded"
+                  style={{ background: 'rgba(96,165,250,0.25)', color: '#60a5fa', fontSize: 9 }}>M</span>
+              )}
+            </button>
+          );
+        })}
+        <span className="text-xs ml-1" style={{ color: '#475569' }}>* derived · M = modelled</span>
       </div>
 
       {/* Map + legend row */}
@@ -128,14 +138,27 @@ export default function MapView() {
                       <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 6 }}>{sensor.type} · {period}m avg</div>
 
                       <div style={{ background: '#060e19', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
-                        <div style={{ color: '#64748b', fontSize: 11, marginBottom: 2 }}>{activePollutant}</div>
+                        <div style={{ color: '#64748b', fontSize: 11, marginBottom: 2, display: 'flex', alignItems: 'center', gap: 4 }}>
+                          {pollutantLabel[activePollutant]}
+                          {pollutantType[activePollutant] === 'modelled' && (
+                            <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(96,165,250,0.2)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.4)', padding: '1px 4px', borderRadius: 3 }}>M modelled</span>
+                          )}
+                          {pollutantType[activePollutant] === 'derived' && (
+                            <span style={{ fontSize: 9, color: '#94a3b8' }}>derived</span>
+                          )}
+                        </div>
                         <div style={{ color: getColor(val), fontWeight: 700, fontSize: 20 }}>
                           {val} <span style={{ fontSize: 12, fontWeight: 400 }}>{pollutantUnits[activePollutant]}</span>
                         </div>
                         <div style={{ marginTop: 6, background: '#0a1628', borderRadius: 4, height: 6, overflow: 'hidden' }}>
                           <div style={{ width: `${pct}%`, height: '100%', background: getColor(val), borderRadius: 4 }} />
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 3 }}>{pct}% of regulatory limit</div>
+                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 3 }}>
+                          {pct}% of {pollutantType[activePollutant] === 'modelled' ? 'display' : 'regulatory'} limit
+                          {pollutantType[activePollutant] === 'modelled' && (
+                            <span style={{ marginLeft: 4, color: '#60a5fa' }}>· modelled from vessel activity</span>
+                          )}
+                        </div>
                       </div>
 
                       <div style={{ borderTop: '1px solid rgba(29,111,164,0.3)', paddingTop: 8 }}>
@@ -173,12 +196,25 @@ export default function MapView() {
             ))}
             <div className="mt-3 pt-3 border-t" style={{ borderColor: 'rgba(29,111,164,0.2)' }}>
               <p className="text-xs" style={{ color: '#64748b' }}>Active layer</p>
-              <p className="text-sm font-bold mt-0.5" style={{ color: pollutantColors[activePollutant] }}>
-                {activePollutant}
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <p className="text-sm font-bold" style={{ color: pollutantColors[activePollutant] }}>
+                  {activePollutant}
+                </p>
+                {pollutantType[activePollutant] === 'modelled' && (
+                  <span className="text-xs font-bold px-1 rounded" style={{ background: 'rgba(96,165,250,0.2)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.4)', fontSize: 9 }}>M</span>
+                )}
+                {pollutantType[activePollutant] === 'derived' && (
+                  <span className="text-xs" style={{ color: '#94a3b8', fontSize: 9 }}>*derived</span>
+                )}
+              </div>
+              <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
+                {pollutantType[activePollutant] === 'modelled' ? 'Display' : 'Limit'}: {pollutantLimits[activePollutant]} {pollutantUnits[activePollutant]}
               </p>
-              <p className="text-xs" style={{ color: '#64748b' }}>
-                Limit: {pollutantThresholds[activePollutant]} {pollutantUnits[activePollutant]}
-              </p>
+              {pollutantType[activePollutant] === 'modelled' && (
+                <p className="text-xs mt-1" style={{ color: '#475569', lineHeight: 1.4 }}>
+                  Modelled from vessel fuel type &amp; engine activity — not directly measured.
+                </p>
+              )}
             </div>
           </div>
 

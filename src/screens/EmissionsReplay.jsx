@@ -6,9 +6,9 @@ import 'leaflet.heat';
 import {
   generateDayData, REPLAY_POLLUTANTS, REPLAY_THRESHOLDS, REPLAY_COLORS,
   REPLAY_DATES, readingColor, readingIntensity, STEPS_PER_HOUR,
-  beaufort, compassLabel,
+  beaufort, compassLabel, windReliability,
 } from '../data/replayData.js';
-import { sensors } from '../data/mockData.js';
+import { sensors, pollutantType } from '../data/mockData.js';
 import { INCIDENTS, getIncidentsForDate } from '../data/incidentData.js';
 
 const PLYMOUTH_CENTER = [50.3656, -4.1423];
@@ -431,7 +431,7 @@ export default function EmissionsReplay() {
       pdf.setFont('helvetica', 'normal');
       pdf.setFontSize(9);
       pdf.setTextColor(100, 116, 139);
-      const threshold = inc.pollutant === 'NOx' ? 400 : inc.pollutant === 'PM2.5' ? 25 : 200;
+      const threshold = REPLAY_THRESHOLDS[inc.pollutant] ?? 200;
       const pct = ((inc.reading / threshold) * 100).toFixed(0);
       pdf.text(`${inc.pollutant}: ${inc.reading} ${inc.unit}`, M + 5, y + 15);
       pdf.text(`Regulatory limit: ${threshold} ${inc.unit} · At ${pct}% of limit`, M + 5, y + 22);
@@ -536,7 +536,8 @@ export default function EmissionsReplay() {
     setStep(v % STEPS_PER_HOUR);
   }
 
-  const bft = beaufort(wind.speed);
+  const bft         = beaufort(wind.speed);
+  const reliability = windReliability(wind.dir);
 
   return (
     <div className="flex flex-col gap-4">
@@ -560,14 +561,25 @@ export default function EmissionsReplay() {
             {REPLAY_DATES.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
           </select>
 
-          <div className="flex rounded-lg overflow-hidden" style={{ border:'1px solid rgba(29,111,164,0.4)' }}>
-            {REPLAY_POLLUTANTS.map(p => (
-              <button key={p} onClick={() => setPollutant(p)}
-                className="px-3 py-1.5 text-xs font-semibold transition"
-                style={{ background: pollutant===p ? REPLAY_COLORS[p] : '#0a1628', color: pollutant===p ? '#fff' : '#64748b' }}>
-                {p}
-              </button>
-            ))}
+          <div className="flex flex-wrap gap-1">
+            {REPLAY_POLLUTANTS.map(p => {
+              const pType = pollutantType[p];
+              const isActive = pollutant === p;
+              return (
+                <button key={p} onClick={() => setPollutant(p)}
+                  className="px-2.5 py-1.5 text-xs font-semibold transition flex items-center gap-1 rounded-lg"
+                  style={{
+                    background: isActive ? REPLAY_COLORS[p] : '#0a1628',
+                    color: isActive ? '#fff' : '#64748b',
+                    border: `1px ${pType === 'modelled' ? 'dashed' : 'solid'} ${isActive ? REPLAY_COLORS[p] : 'rgba(29,111,164,0.4)'}`,
+                  }}>
+                  {p === 'NOx' ? 'NOx*' : p}
+                  {pType === 'modelled' && (
+                    <span style={{ fontSize:8, fontWeight:700, background:'rgba(96,165,250,0.25)', color:'#60a5fa', padding:'0 3px', borderRadius:2 }}>M</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <ToggleBtn label="Wind" active={showWind} onClick={() => setShowWind(v => !v)} activeColor="#60a5fa" />
@@ -635,8 +647,8 @@ export default function EmissionsReplay() {
         <div className="lg:col-span-3 rounded-xl overflow-hidden relative"
           style={{ border:'1px solid rgba(29,111,164,0.3)', height: MAP_HEIGHT }}>
 
-          {/* Timestamp badge */}
-          <div style={{ position:'absolute', top:12, left:'50%', transform:'translateX(-50%)', zIndex:1000, pointerEvents:'none' }}>
+          {/* Timestamp badge + reliability indicator */}
+          <div style={{ position:'absolute', top:12, left:'50%', transform:'translateX(-50%)', zIndex:1000, pointerEvents:'none', display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
             <div style={{
               padding:'8px 18px', borderRadius:10, background:'rgba(6,14,25,0.90)',
               color:'#fff', fontWeight:700, fontSize:14, letterSpacing:'0.03em',
@@ -645,6 +657,14 @@ export default function EmissionsReplay() {
             }}>
               {activeIncidentId && <span style={{ color:'#ef4444', marginRight:8 }}>⚠</span>}
               {timestamp}
+            </div>
+            <div style={{
+              display:'flex', alignItems:'center', gap:5, padding:'4px 10px', borderRadius:7,
+              background:'rgba(6,14,25,0.85)', backdropFilter:'blur(6px)',
+              border:`1px solid ${reliability.color}55`, fontFamily:'Inter,sans-serif',
+            }}>
+              <span style={{ width:7, height:7, borderRadius:'50%', background:reliability.color, flexShrink:0 }}/>
+              <span style={{ fontSize:10, fontWeight:600, color:reliability.color }}>{reliability.label}</span>
             </div>
           </div>
 

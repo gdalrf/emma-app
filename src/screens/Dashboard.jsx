@@ -1,17 +1,16 @@
-import { getPortKPIs, sensors, pollutantColors, sensorReadings } from '../data/mockData';
+import { getPortKPIs, sensors, pollutantColors, pollutantType, sensorReadings } from '../data/mockData';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
 export default function Dashboard({ onNavigate }) {
   const kpi = getPortKPIs(12);
-  const kpi3 = getPortKPIs(3);
 
-  // Mini sparkline: last 6 months port-wide avg CO2
+  // Sparkline: last 6 months port-wide — measured pollutants NO2, NO and derived NOx
   const sparkData = sensorReadings['S01'].slice(-6).map(r => ({
     label: r.label,
-    CO2: +r.CO2.toFixed(0),
     NO2: +r.NO2.toFixed(1),
+    NO:  +r.NO.toFixed(1),
     NOx: +r.NOx.toFixed(1),
   }));
 
@@ -26,76 +25,83 @@ export default function Dashboard({ onNavigate }) {
           </p>
         </div>
         <div className="flex gap-2">
-          <QuickBtn label="Map View" color="#1d6fa4" onClick={() => onNavigate('map')} icon="🗺️" />
-          <QuickBtn label="Reports" color="#00c2a8" onClick={() => onNavigate('reports')} icon="📄" />
+          <QuickBtn label="Map View" color="#1d6fa4" onClick={() => onNavigate('map')}     icon="🗺️" />
+          <QuickBtn label="Reports"  color="#00c2a8" onClick={() => onNavigate('reports')} icon="📄" />
         </div>
       </div>
 
-      {/* KPI Cards */}
+      {/* Primary KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
-          title="Total CO₂ (12m)"
-          value={kpi.totalCO2.toLocaleString()}
-          unit="ppm-months"
-          sub="All sensors combined"
-          color="#10b981"
-          trend={null}
-        />
-        <KPICard
-          title="Avg NO₂"
+          title="Avg NO₂ (12m)"
           value={kpi.avgNO2}
           unit="µg/m³"
-          sub="Port-wide average"
+          sub={`UK limit: 40 µg/m³ · ${kpi.no2Exceedances} months above limit`}
           color="#f59e0b"
           trend="+2.3%"
           trendUp={true}
+          limitPct={Math.round((kpi.avgNO2 / 40) * 100)}
         />
         <KPICard
-          title="Avg PM2.5"
+          title="Avg PM2.5 (12m)"
           value={kpi.avgPM25}
           unit="µg/m³"
-          sub="WHO limit: 15 µg/m³"
-          color="#06b6d4"
+          sub="UK limit: 20 µg/m³ annual mean"
+          color="#a78bfa"
           trend="-1.1%"
           trendUp={false}
+          limitPct={Math.round((kpi.avgPM25 / 20) * 100)}
         />
         <KPICard
-          title="Total Miles"
-          value={kpi.totalMiles.toLocaleString()}
-          unit="nautical miles"
-          sub={`${kpi.activeVessels} vessels tracked`}
+          title="Avg PM10 (12m)"
+          value={kpi.avgPM10}
+          unit="µg/m³"
+          sub="UK limit: 40 µg/m³ annual mean"
+          color="#6366f1"
+          trend="-0.8%"
+          trendUp={false}
+          limitPct={Math.round((kpi.avgPM10 / 40) * 100)}
+        />
+        <KPICard
+          title="Vessels"
+          value={kpi.activeVessels}
+          unit="monitored"
+          sub={`${kpi.totalMiles.toLocaleString()} nm logged`}
           color="#8b5cf6"
           trend="+4.7%"
           trendUp={true}
         />
       </div>
 
-      {/* Secondary KPIs */}
+      {/* Secondary stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatBadge label="Active Sensors" value={kpi.activeSensors} icon="📡" />
-        <StatBadge label="Vessels Monitored" value={kpi.activeVessels} icon="🚢" />
-        <StatBadge label="Avg SOx (12m)" value={`${kpi.avgSOx} µg/m³`} icon="🌫️" />
-        <StatBadge label="Data Completeness" value="97.4%" icon="✅" />
+        <StatBadge label="Active Sensors"      value={kpi.activeSensors}       icon="📡" />
+        <StatBadge label="Vessels Monitored"   value={kpi.activeVessels}       icon="🚢" />
+        <StatBadge label="Avg NO (12m)"        value={`${kpi.avgNO} µg/m³`}   icon="🔬" />
+        <StatBadge label="Data Completeness"   value="97.4%"                    icon="✅" />
       </div>
 
       {/* Chart + Alerts row */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
         {/* Trend chart */}
         <div className="lg:col-span-2 rounded-xl p-5"
           style={{ background: '#0a1628', border: '1px solid rgba(29,111,164,0.25)' }}>
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-sm font-semibold text-white">Emissions Trend — Last 6 Months</h2>
-              <p className="text-xs" style={{ color: '#64748b' }}>Devonport Sensor (S01) · CO₂, NO₂, NOx</p>
+              <p className="text-xs" style={{ color: '#64748b' }}>
+                Devonport Sensor (S01) · NO₂ measured · NO measured · NOx derived (NO + NO₂)
+              </p>
             </div>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={sparkData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }}>
               <defs>
-                {[['CO2','#10b981'],['NO2','#f59e0b'],['NOx','#ec4899']].map(([k,c])=>(
+                {[['NO2','#f59e0b'],['NO','#8b5cf6'],['NOx','#ef4444']].map(([k, c]) => (
                   <linearGradient key={k} id={`g${k}`} x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor={c} stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor={c} stopOpacity={0}/>
+                    <stop offset="5%"  stopColor={c} stopOpacity={0.30} />
+                    <stop offset="95%" stopColor={c} stopOpacity={0} />
                   </linearGradient>
                 ))}
               </defs>
@@ -105,11 +111,12 @@ export default function Dashboard({ onNavigate }) {
               <Tooltip
                 contentStyle={{ background: '#0a1628', border: '1px solid #1d6fa4', borderRadius: 8, fontSize: 12 }}
                 labelStyle={{ color: '#94a3b8' }}
+                formatter={(v, name) => [`${v} µg/m³`, name === 'NOx' ? 'NOx (derived)' : name]}
               />
               <Legend wrapperStyle={{ fontSize: 12, color: '#94a3b8' }} />
-              <Area type="monotone" dataKey="CO2" stroke="#10b981" fill="url(#gCO2)" strokeWidth={2} dot={false} />
-              <Area type="monotone" dataKey="NO2" stroke="#f59e0b" fill="url(#gNO2)" strokeWidth={2} dot={false} />
-              <Area type="monotone" dataKey="NOx" stroke="#ec4899" fill="url(#gNOx)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="NO2" name="NO₂ (measured)" stroke="#f59e0b" fill="url(#gNO2)" strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="NO"  name="NO (measured)"  stroke="#8b5cf6" fill="url(#gNO)"  strokeWidth={2} dot={false} />
+              <Area type="monotone" dataKey="NOx" name="NOx (derived)"  stroke="#ef4444" fill="url(#gNOx)" strokeWidth={2} dot={false} strokeDasharray="5 3" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -118,18 +125,45 @@ export default function Dashboard({ onNavigate }) {
         <div className="rounded-xl p-5 space-y-3"
           style={{ background: '#0a1628', border: '1px solid rgba(29,111,164,0.25)' }}>
           <h2 className="text-sm font-semibold text-white">Active Alerts</h2>
-          <Alert level="warn"  title="NO₂ Elevated" msg="Millbay Docks — 187 µg/m³ (93% of limit)" />
-          <Alert level="warn"  title="SOx Spike"    msg="Cattewater — 312 µg/m³ (89% of limit)" />
-          <Alert level="info"  title="Ferry Schedule" msg="Brittany Ferries arrival 14:30 — monitor SO₂" />
-          <Alert level="ok"    title="PM2.5 Normal"   msg="All sensors within WHO guidelines" />
-          <Alert level="info"  title="Report Due"     msg="Q1 2025 compliance report due in 8 days" />
+          <Alert level="warn"  title="NO₂ Elevated"
+            msg="Millbay Docks — 52 µg/m³ (130% of UK annual limit)" />
+          <Alert level="warn"  title="PM2.5 Elevated"
+            msg="Devonport — 21 µg/m³ (105% of UK limit)" />
+          <Alert level="info"  title="Ferry Schedule"
+            msg={<>Brittany Ferries arrival 14:30 — monitor NO₂ &amp; SO₂ (modelled)</>} />
+          <Alert level="ok"    title="PM10 Normal"
+            msg="All sensors within UK annual mean limit (40 µg/m³)" />
+          <Alert level="info"  title="Report Due"
+            msg="Q1 2025 compliance report due in 8 days" />
           <button
             onClick={() => onNavigate('emissions')}
             className="w-full mt-2 text-xs py-2 rounded-lg font-medium transition"
-            style={{ background: 'rgba(29,111,164,0.2)', color: '#60a5fa', border: '1px solid rgba(29,111,164,0.3)' }}
-          >
+            style={{ background: 'rgba(29,111,164,0.2)', color: '#60a5fa', border: '1px solid rgba(29,111,164,0.3)' }}>
             View Live Emissions →
           </button>
+        </div>
+      </div>
+
+      {/* SO2 modelled context banner */}
+      <div className="rounded-xl px-5 py-4 flex items-start gap-4"
+        style={{ background: 'rgba(96,165,250,0.07)', border: '1px dashed rgba(96,165,250,0.35)' }}>
+        <div className="flex items-center gap-2 flex-shrink-0 mt-0.5">
+          <span className="px-1.5 py-0.5 rounded text-xs font-bold"
+            style={{ background: 'rgba(96,165,250,0.2)', color: '#60a5fa', border: '1px solid rgba(96,165,250,0.4)' }}>
+            M
+          </span>
+          <span className="text-xs font-semibold" style={{ color: '#60a5fa' }}>SO₂ (modelled)</span>
+        </div>
+        <div>
+          <p className="text-xs font-semibold" style={{ color: '#e2e8f0' }}>
+            SO₂ avg (modelled): {kpi.avgSO2} µg/m³
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>
+            SO₂ is not directly measured at Plymouth harbour sensors.
+            This is a modelled estimate derived from vessel fuel type, engine load, and
+            marine activity data. UK 24-hr mean limit: 125 µg/m³. MARPOL Annex VI
+            Emission Control Area rules apply in the North Sea / Channel.
+          </p>
         </div>
       </div>
 
@@ -140,9 +174,10 @@ export default function Dashboard({ onNavigate }) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {sensors.map(s => {
             const latest = sensorReadings[s.id].at(-1);
-            const ok = latest.NO2 < 160;
+            const ok     = latest.NO2 < 40; // UK annual mean limit
             return (
-              <div key={s.id} className="rounded-lg p-3" style={{ background: '#060e19', border: `1px solid ${ok ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.4)'}` }}>
+              <div key={s.id} className="rounded-lg p-3"
+                style={{ background: '#060e19', border: `1px solid ${ok ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.4)'}` }}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-mono" style={{ color: '#64748b' }}>{s.id}</span>
                   <span className="w-2 h-2 rounded-full" style={{ background: ok ? '#10b981' : '#f59e0b' }} />
@@ -151,6 +186,9 @@ export default function Dashboard({ onNavigate }) {
                 <p className="text-xs mt-0.5" style={{ color: '#64748b' }}>{s.type}</p>
                 <p className="text-xs mt-1 font-mono" style={{ color: ok ? '#10b981' : '#f59e0b' }}>
                   NO₂ {latest.NO2} µg/m³
+                </p>
+                <p className="text-xs font-mono" style={{ color: '#475569' }}>
+                  PM2.5 {latest['PM2.5']} µg/m³
                 </p>
               </div>
             );
@@ -161,21 +199,32 @@ export default function Dashboard({ onNavigate }) {
   );
 }
 
-function KPICard({ title, value, unit, sub, color, trend, trendUp }) {
+function KPICard({ title, value, unit, sub, color, trend, trendUp, limitPct }) {
   return (
     <div className="rounded-xl p-5" style={{ background: '#0a1628', border: '1px solid rgba(29,111,164,0.25)' }}>
       <div className="flex items-start justify-between">
         <p className="text-xs font-medium" style={{ color: '#64748b' }}>{title}</p>
         {trend && (
           <span className="text-xs px-1.5 py-0.5 rounded font-mono"
-            style={{ background: trendUp ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)', color: trendUp ? '#ef4444' : '#10b981' }}>
+            style={{
+              background: trendUp ? 'rgba(239,68,68,0.15)' : 'rgba(16,185,129,0.15)',
+              color:      trendUp ? '#ef4444' : '#10b981',
+            }}>
             {trend}
           </span>
         )}
       </div>
       <p className="text-2xl font-bold mt-2" style={{ color }}>{value}</p>
       <p className="text-xs mt-0.5" style={{ color: '#475569' }}>{unit}</p>
-      <p className="text-xs mt-2" style={{ color: '#64748b' }}>{sub}</p>
+      {limitPct !== undefined && (
+        <div className="mt-2 rounded-full h-1" style={{ background: '#060e19' }}>
+          <div style={{
+            width: `${Math.min(100, limitPct)}%`, height: '100%', borderRadius: 9999,
+            background: limitPct >= 100 ? '#ef4444' : limitPct >= 75 ? '#f59e0b' : '#10b981',
+          }} />
+        </div>
+      )}
+      <p className="text-xs mt-1.5" style={{ color: '#64748b' }}>{sub}</p>
     </div>
   );
 }
@@ -212,11 +261,9 @@ function Alert({ level, title, msg }) {
 
 function QuickBtn({ label, color, onClick, icon }) {
   return (
-    <button
-      onClick={onClick}
+    <button onClick={onClick}
       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-all"
-      style={{ background: color, boxShadow: `0 4px 12px ${color}40` }}
-    >
+      style={{ background: color, boxShadow: `0 4px 12px ${color}40` }}>
       <span>{icon}</span>
       {label}
     </button>

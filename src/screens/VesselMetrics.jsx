@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { vessels, vesselEmissions, pollutants, pollutantColors, pollutantUnits } from '../data/mockData';
+import { vessels, vesselEmissions, pollutants, pollutantColors, pollutantUnits, pollutantType, pollutantLabel } from '../data/mockData';
 
 const PERIOD_OPTIONS = [
   { label: '3 Months',  value: 3 },
@@ -12,7 +12,7 @@ const PERIOD_OPTIONS = [
 
 export default function VesselMetrics() {
   const [period, setPeriod]         = useState(12);
-  const [pollutant, setPollutant]   = useState('CO2');
+  const [pollutant, setPollutant]   = useState('NO2');
   const [filter, setFilter]         = useState('');
   const [sortCol, setSortCol]       = useState('miles');
   const [sortDir, setSortDir]       = useState('desc');
@@ -92,26 +92,38 @@ export default function VesselMetrics() {
       </div>
 
       {/* Pollutant filter */}
-      <div className="flex flex-wrap gap-2">
-        {pollutants.map(p => (
-          <button key={p} onClick={() => setPollutant(p)}
-            className="px-3 py-1 rounded-full text-xs font-semibold transition-all"
-            style={{
-              background: pollutant === p ? pollutantColors[p] : 'rgba(29,111,164,0.1)',
-              color: pollutant === p ? '#fff' : '#94a3b8',
-              border: `1px solid ${pollutant === p ? pollutantColors[p] : 'rgba(29,111,164,0.3)'}`,
-            }}>
-            {p}
-          </button>
-        ))}
+      <div className="flex flex-wrap gap-2 items-center">
+        {pollutants.map(p => {
+          const pType = pollutantType[p];
+          const isActive = pollutant === p;
+          return (
+            <button key={p} onClick={() => setPollutant(p)}
+              className="px-3 py-1 rounded-full text-xs font-semibold transition-all flex items-center gap-1"
+              style={{
+                background: isActive ? pollutantColors[p] : 'rgba(29,111,164,0.1)',
+                color: isActive ? '#fff' : '#94a3b8',
+                border: `1px ${pType === 'modelled' ? 'dashed' : 'solid'} ${isActive ? pollutantColors[p] : 'rgba(29,111,164,0.3)'}`,
+              }}>
+              {p === 'NOx' ? 'NOx*' : p}
+              {pType === 'modelled' && (
+                <span style={{ fontSize: 9, fontWeight: 700, background: 'rgba(96,165,250,0.25)', color: '#60a5fa', padding: '0 3px', borderRadius: 3 }}>M</span>
+              )}
+            </button>
+          );
+        })}
+        <span className="text-xs ml-1" style={{ color: '#475569' }}>* derived · M = modelled</span>
       </div>
 
       {/* Chart */}
       <div className="rounded-xl p-5" style={{ background: '#0a1628', border: '1px solid rgba(29,111,164,0.25)' }}>
         <h2 className="text-sm font-semibold text-white mb-1">
-          {pollutant} Avg Emissions by Vessel (top 10)
+          {pollutantLabel[pollutant]} Avg Emissions by Vessel (top 10)
         </h2>
-        <p className="text-xs mb-4" style={{ color: '#64748b' }}>Last {period} months · {pollutantUnits[pollutant]}</p>
+        <p className="text-xs mb-4" style={{ color: '#64748b' }}>
+          Last {period} months · {pollutantUnits[pollutant]}
+          {pollutantType[pollutant] === 'modelled' && <span style={{ color: '#60a5fa', marginLeft: 6 }}>· modelled estimate</span>}
+          {pollutantType[pollutant] === 'derived' && <span style={{ color: '#94a3b8', marginLeft: 6 }}>· derived (NO + NO₂)</span>}
+        </p>
         <ResponsiveContainer width="100%" height={200}>
           <BarChart data={chartData} margin={{ top: 0, right: 8, left: -10, bottom: 40 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(29,111,164,0.15)" />
@@ -137,10 +149,10 @@ export default function VesselMetrics() {
                   { col: 'type',    label: 'Type' },
                   { col: 'flag',    label: 'Flag' },
                   { col: 'miles',   label: 'Miles (nm)' },
-                  { col: pollutant, label: `${pollutant} Avg` },
-                  { col: 'CO2',     label: 'CO₂ Avg' },
                   { col: 'NO2',     label: 'NO₂ Avg' },
+                  { col: 'NO',      label: 'NO Avg' },
                   { col: 'PM2.5',   label: 'PM2.5 Avg' },
+                  { col: 'PM10',    label: 'PM10 Avg' },
                   { col: 'engineType', label: 'Engine' },
                 ].map(({ col, label }) => (
                   <th key={col}
@@ -171,12 +183,10 @@ export default function VesselMetrics() {
                   <td className="px-4 py-3 font-mono text-right" style={{ color: '#60a5fa' }}>
                     {v.miles.toLocaleString()}
                   </td>
-                  <td className="px-4 py-3 font-mono text-right font-bold" style={{ color: pollutantColors[pollutant] }}>
-                    {v[pollutant]}
-                  </td>
-                  <td className="px-4 py-3 font-mono text-right" style={{ color: '#10b981' }}>{v.CO2}</td>
-                  <td className="px-4 py-3 font-mono text-right" style={{ color: '#f59e0b' }}>{v.NO2}</td>
-                  <td className="px-4 py-3 font-mono text-right" style={{ color: '#06b6d4' }}>{v['PM2.5']}</td>
+                  <td className="px-4 py-3 font-mono text-right font-bold" style={{ color: '#f59e0b' }}>{v.NO2}</td>
+                  <td className="px-4 py-3 font-mono text-right" style={{ color: '#8b5cf6' }}>{v.NO}</td>
+                  <td className="px-4 py-3 font-mono text-right" style={{ color: '#a78bfa' }}>{v['PM2.5']}</td>
+                  <td className="px-4 py-3 font-mono text-right" style={{ color: '#6366f1' }}>{v.PM10}</td>
                   <td className="px-4 py-3" style={{ color: '#64748b' }}>
                     <EngineBadge engine={v.engineType} />
                   </td>
@@ -203,9 +213,9 @@ export default function VesselMetrics() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {[
               { label: 'Total Miles', value: selected.miles.toLocaleString(), unit: 'nm', color: '#60a5fa' },
-              { label: `Avg ${pollutant}`, value: selected[pollutant], unit: pollutantUnits[pollutant], color: pollutantColors[pollutant] },
-              { label: 'Avg CO₂', value: selected.CO2, unit: 'ppm', color: '#10b981' },
-              { label: 'Avg PM2.5', value: selected['PM2.5'], unit: 'µg/m³', color: '#06b6d4' },
+              { label: `Avg ${pollutantLabel[pollutant]}`, value: selected[pollutant], unit: pollutantUnits[pollutant], color: pollutantColors[pollutant] },
+              { label: 'Avg NO', value: selected.NO, unit: 'µg/m³', color: '#8b5cf6' },
+              { label: 'Avg PM2.5', value: selected['PM2.5'], unit: 'µg/m³', color: '#a78bfa' },
             ].map(s => (
               <div key={s.label} className="rounded-lg p-3 text-center" style={{ background: '#060e19' }}>
                 <p className="text-xs mb-1" style={{ color: '#64748b' }}>{s.label}</p>

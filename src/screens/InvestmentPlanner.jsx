@@ -206,7 +206,7 @@ export default function InvestmentPlanner() {
       pdf.text('2. Projected Emission Reductions (Combined Programme)', M, y);
       y += 8;
 
-      const pollutantsList = ['NOx', 'NO2', 'PM25', 'CO2', 'SOx'];
+      const pollutantsList = ['NOx', 'NO2', 'PM25', 'CO2', 'SO2'];
       pdf.setFillColor(10, 22, 40);
       pdf.rect(M, y, W - M * 2, 8, 'F');
       pdf.setFont('helvetica', 'bold');
@@ -589,7 +589,7 @@ export default function InvestmentPlanner() {
             <span style={{ color:'#00c2a8' }}>◆</span> Combined Emissions Impact — Full Programme
           </h3>
           <div className="grid grid-cols-5 gap-3">
-            {['NOx','NO2','PM25','CO2','SOx'].map(p => {
+            {['NOx','NO2','PM25','CO2','SO2'].map(p => {
               const pctRed  = impact.reductions[p] ?? 0;
               const baseline = PORT_BASELINE[p]?.shipping ?? 0;
               const projected = Math.round(baseline * (1 - pctRed / 100));
