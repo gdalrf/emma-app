@@ -130,7 +130,7 @@ export default function Dashboard({ onNavigate }) {
           <Alert level="warn"  title="PM2.5 Elevated"
             msg="Devonport — 21 µg/m³ (105% of UK limit)" />
           <Alert level="info"  title="Ferry Schedule"
-            msg={<>Brittany Ferries arrival 14:30 — monitor NO₂ &amp; SO₂ (modelled)</>} />
+            msg={<>Ferry arrival 14:30 — monitor NO₂ &amp; SO₂ (modelled)</>} />
           <Alert level="ok"    title="PM10 Normal"
             msg="All sensors within UK annual mean limit (40 µg/m³)" />
           <Alert level="info"  title="Report Due"

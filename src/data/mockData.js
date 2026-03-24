@@ -1,6 +1,6 @@
 // ─── Sensor locations around Plymouth Harbour ────────────────────────────────
 export const sensors = [
-  { id: 'S01', name: 'Devonport Naval Base',    lat: 50.3706, lng: -4.1820, type: 'Industrial' },
+  { id: 'S01', name: 'Devonport',    lat: 50.3706, lng: -4.1820, type: 'Industrial' },
   { id: 'S02', name: 'Millbay Docks',           lat: 50.3648, lng: -4.1611, type: 'Commercial' },
   { id: 'S03', name: 'Queen Anne\'s Battery',   lat: 50.3660, lng: -4.1379, type: 'Marina' },
   { id: 'S04', name: 'Sutton Harbour',          lat: 50.3681, lng: -4.1355, type: 'Fishing' },
