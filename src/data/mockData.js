@@ -13,7 +13,7 @@ export const sensors = [
 // ─── Vessels ──────────────────────────────────────────────────────────────────
 export const vessels = [
   { id: 'V01', name: 'MV Atlantic Pioneer',  type: 'Cargo',      flag: 'GBR', imo: '9812345', gtonnage: 18500, engineType: 'Diesel',  homePort: 'Plymouth' },
-  { id: 'V02', name: 'PS Brittany Ferry',    type: 'Ferry',      flag: 'FRA', imo: '9234567', gtonnage: 42000, engineType: 'Diesel',  homePort: 'Roscoff'  },
+  { id: 'V02', name: 'PS Ferry',    type: 'Ferry',      flag: 'FRA', imo: '9234567', gtonnage: 42000, engineType: 'Diesel',  homePort: 'Roscoff'  },
   { id: 'V03', name: 'RFA Wave Knight',      type: 'Naval',      flag: 'GBR', imo: '9345678', gtonnage: 31500, engineType: 'Diesel',  homePort: 'Plymouth' },
   { id: 'V04', name: 'MV Celtic Carrier',    type: 'Bulk Cargo', flag: 'IRL', imo: '9456789', gtonnage: 12800, engineType: 'Diesel',  homePort: 'Cork'     },
   { id: 'V05', name: 'SV Plymouth Trader',   type: 'Cargo',      flag: 'GBR', imo: '9567890', gtonnage: 7200,  engineType: 'LNG',    homePort: 'Plymouth' },
