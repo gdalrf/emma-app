@@ -38,12 +38,17 @@ export default async function handler(req, res) {
 
     if (!anthropicRes.ok) {
       const body = await anthropicRes.text();
-      return res.status(anthropicRes.status).json({ error: body });
+      console.error('[schedule-investigation] Anthropic API error', anthropicRes.status, body);
+      let message = body;
+      try { message = JSON.parse(body)?.error?.message ?? body; } catch {}
+      return res.status(anthropicRes.status).json({ error: `Anthropic ${anthropicRes.status}: ${message}` });
     }
 
     const data = await anthropicRes.json();
+    console.log('[schedule-investigation] Success:', JSON.stringify(data).slice(0, 200));
     return res.status(200).json(data);
   } catch (err) {
+    console.error('[schedule-investigation] Unexpected error:', err);
     return res.status(500).json({ error: err.message ?? 'Internal server error' });
   }
 }
