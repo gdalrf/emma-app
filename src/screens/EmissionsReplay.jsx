@@ -1058,7 +1058,7 @@ export default function EmissionsReplay() {
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polyline points="20 6 9 17 4 12"/>
           </svg>
-          Investigation scheduled — added to Google Calendar
+          Opening Google Calendar — click Save to confirm your investigation meeting
         </div>
       )}
     </div>
