@@ -10,6 +10,7 @@ import {
 } from '../data/replayData.js';
 import { sensors, pollutantType } from '../data/mockData.js';
 import { INCIDENTS, getIncidentsForDate } from '../data/incidentData.js';
+import ScheduleInvestigationModal from '../components/ScheduleInvestigationModal.jsx';
 
 const PLYMOUTH_CENTER = [50.3656, -4.1423];
 const MAP_HEIGHT = 540;
@@ -320,6 +321,14 @@ export default function EmissionsReplay() {
   const [activeIncidentId, setActiveIncidentId]       = useState(null);
   const [dispatchNote, setDispatchNote]               = useState('');
   const [investigateExporting, setInvestigateExporting] = useState(false);
+  const [scheduleIncident, setScheduleIncident]       = useState(null);
+  const [scheduleToast, setScheduleToast]             = useState(false);
+
+  function handleScheduleSuccess() {
+    setScheduleIncident(null);
+    setScheduleToast(true);
+    setTimeout(() => setScheduleToast(false), 4000);
+  }
 
   const dayData  = getDayData(selectedDate);
   const stepData = dayData[hour]?.[step];
@@ -615,16 +624,32 @@ export default function EmissionsReplay() {
               const isActive = activeIncidentId === inc.id;
               const sevColor = inc.severity === 'high' ? '#ef4444' : '#f59e0b';
               return (
-                <button key={inc.id} onClick={() => handleAlertClick(inc)} style={{
-                  padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                  background: isActive ? sevColor : `rgba(${inc.severity === 'high' ? '239,68,68' : '245,158,11'},0.12)`,
-                  color: isActive ? '#fff' : sevColor,
-                  border: `1px solid ${sevColor}55`,
-                  transition: 'all 0.15s',
-                }}>
-                  [{inc.id}] {inc.sensorName.replace('Plymouth ','').replace(' Terminal','').replace(' Jetty','').replace(' Naval Basin','')} ·{' '}
-                  {String(inc.hour).padStart(2,'0')}:{String(inc.step * 5).padStart(2,'0')}
-                </button>
+                <span key={inc.id} style={{ display:'inline-flex', alignItems:'center', gap:3 }}>
+                  <button onClick={() => handleAlertClick(inc)} style={{
+                    padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer',
+                    background: isActive ? sevColor : `rgba(${inc.severity === 'high' ? '239,68,68' : '245,158,11'},0.12)`,
+                    color: isActive ? '#fff' : sevColor,
+                    border: `1px solid ${sevColor}55`,
+                    transition: 'all 0.15s',
+                  }}>
+                    [{inc.id}] {inc.sensorName.replace('Plymouth ','').replace(' Terminal','').replace(' Jetty','').replace(' Naval Basin','')} ·{' '}
+                    {String(inc.hour).padStart(2,'0')}:{String(inc.step * 5).padStart(2,'0')}
+                  </button>
+                  <button onClick={() => setScheduleIncident(inc)} style={{
+                    padding: '4px 7px', borderRadius: 6, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                    background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
+                    border: '1px solid rgba(245,158,11,0.35)',
+                    display: 'inline-flex', alignItems: 'center', gap: 3,
+                  }}>
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
+                    Schedule
+                  </button>
+                </span>
               );
             })}
             {activeIncidentId && (
@@ -828,6 +853,23 @@ export default function EmissionsReplay() {
                   }}>
                   {investigateExporting ? '⏳ Generating…' : '📋 Investigate — Export PDF'}
                 </button>
+                <button
+                  onClick={() => setScheduleIncident(activeIncident)}
+                  style={{
+                    marginTop:6, width:'100%', padding:'9px', borderRadius:8,
+                    background:'rgba(245,158,11,0.15)', color:'#f59e0b',
+                    fontSize:12, fontWeight:700, cursor:'pointer',
+                    display:'flex', alignItems:'center', justifyContent:'center', gap:6,
+                    border:'1px solid rgba(245,158,11,0.35)',
+                  }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  Schedule Investigation
+                </button>
                 <button onClick={handleClearIncident} style={{
                   marginTop:6, width:'100%', padding:'7px', borderRadius:8,
                   background:'transparent', color:'#64748b', fontSize:11,
@@ -994,6 +1036,31 @@ export default function EmissionsReplay() {
           </div>
         </div>
       </div>
+
+      {/* Schedule Investigation modal */}
+      {scheduleIncident && (
+        <ScheduleInvestigationModal
+          incident={scheduleIncident}
+          onClose={() => setScheduleIncident(null)}
+          onSuccess={handleScheduleSuccess}
+        />
+      )}
+
+      {/* Success toast */}
+      {scheduleToast && (
+        <div style={{
+          position:'fixed', bottom:24, right:24, zIndex:9999,
+          background:'#10b981', color:'#fff', borderRadius:10,
+          padding:'12px 20px', fontSize:13, fontWeight:600,
+          boxShadow:'0 8px 24px rgba(0,0,0,0.4)',
+          display:'flex', alignItems:'center', gap:8,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Investigation scheduled — added to Google Calendar
+        </div>
+      )}
     </div>
   );
 }

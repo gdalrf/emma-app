@@ -1,10 +1,46 @@
+import { useState } from 'react';
 import { getPortKPIs, sensors, pollutantColors, pollutantType, sensorReadings } from '../data/mockData';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
+import ScheduleInvestigationModal from '../components/ScheduleInvestigationModal';
+
+// Hardcoded incident data matching the active dashboard alerts
+const DASHBOARD_INCIDENTS = {
+  no2: {
+    sensorName: 'Millbay Docks',
+    pollutant: 'NO₂',
+    reading: 52,
+    unit: 'µg/m³',
+    timestamp: 'Live reading',
+    vessel: { name: 'PS Ferry', type: 'Ferry', engineType: 'Heavy Marine Diesel', imo: '9234567' },
+    windDir: 230,
+    windSpeed: 15,
+    description: 'NO₂ reading of 52 µg/m³ (130% of UK annual mean limit) at Millbay Docks. Likely plume transport from Ferry Terminal.',
+  },
+  pm25: {
+    sensorName: 'Devonport',
+    pollutant: 'PM2.5',
+    reading: 21,
+    unit: 'µg/m³',
+    timestamp: 'Live reading',
+    vessel: null,
+    windDir: 225,
+    windSpeed: 14,
+    description: 'PM2.5 at 21 µg/m³ (105% of UK annual mean limit) at Devonport sensor.',
+  },
+};
 
 export default function Dashboard({ onNavigate }) {
   const kpi = getPortKPIs(12);
+  const [scheduleIncident, setScheduleIncident] = useState(null);
+  const [toast, setToast]                       = useState(false);
+
+  function handleScheduleSuccess() {
+    setScheduleIncident(null);
+    setToast(true);
+    setTimeout(() => setToast(false), 4000);
+  }
 
   // Sparkline: last 6 months port-wide — measured pollutants NO2, NO and derived NOx
   const sparkData = sensorReadings['S01'].slice(-6).map(r => ({
@@ -126,9 +162,11 @@ export default function Dashboard({ onNavigate }) {
           style={{ background: '#0a1628', border: '1px solid rgba(29,111,164,0.25)' }}>
           <h2 className="text-sm font-semibold text-white">Active Alerts</h2>
           <Alert level="warn"  title="NO₂ Elevated"
-            msg="Millbay Docks — 52 µg/m³ (130% of UK annual limit)" />
+            msg="Millbay Docks — 52 µg/m³ (130% of UK annual limit)"
+            onSchedule={() => setScheduleIncident(DASHBOARD_INCIDENTS.no2)} />
           <Alert level="warn"  title="PM2.5 Elevated"
-            msg="Devonport — 21 µg/m³ (105% of UK limit)" />
+            msg="Devonport — 21 µg/m³ (105% of UK limit)"
+            onSchedule={() => setScheduleIncident(DASHBOARD_INCIDENTS.pm25)} />
           <Alert level="info"  title="Ferry Schedule"
             msg={<>Ferry arrival 14:30 — monitor NO₂ &amp; SO₂ (modelled)</>} />
           <Alert level="ok"    title="PM10 Normal"
@@ -195,6 +233,31 @@ export default function Dashboard({ onNavigate }) {
           })}
         </div>
       </div>
+
+      {/* Schedule Investigation modal */}
+      {scheduleIncident && (
+        <ScheduleInvestigationModal
+          incident={scheduleIncident}
+          onClose={() => setScheduleIncident(null)}
+          onSuccess={handleScheduleSuccess}
+        />
+      )}
+
+      {/* Success toast */}
+      {toast && (
+        <div style={{
+          position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+          background: '#10b981', color: '#fff', borderRadius: 10,
+          padding: '12px 20px', fontSize: 13, fontWeight: 600,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          Investigation scheduled — added to Google Calendar
+        </div>
+      )}
     </div>
   );
 }
@@ -242,7 +305,7 @@ function StatBadge({ label, value, icon }) {
   );
 }
 
-function Alert({ level, title, msg }) {
+function Alert({ level, title, msg, onSchedule }) {
   const cfg = {
     warn: { bg: 'rgba(245,158,11,0.1)', border: 'rgba(245,158,11,0.3)', dot: '#f59e0b' },
     info: { bg: 'rgba(29,111,164,0.1)',  border: 'rgba(29,111,164,0.3)',  dot: '#60a5fa' },
@@ -250,9 +313,30 @@ function Alert({ level, title, msg }) {
   }[level];
   return (
     <div className="rounded-lg px-3 py-2" style={{ background: cfg.bg, border: `1px solid ${cfg.border}` }}>
-      <div className="flex items-center gap-2">
-        <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
-        <span className="text-xs font-semibold text-white">{title}</span>
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: cfg.dot }} />
+          <span className="text-xs font-semibold text-white">{title}</span>
+        </div>
+        {onSchedule && (
+          <button
+            onClick={onSchedule}
+            style={{
+              flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4,
+              padding: '2px 7px', borderRadius: 5, border: '1px solid rgba(245,158,11,0.4)',
+              background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
+              fontSize: 10, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+            }}
+          >
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+              <line x1="16" y1="2" x2="16" y2="6"/>
+              <line x1="8" y1="2" x2="8" y2="6"/>
+              <line x1="3" y1="10" x2="21" y2="10"/>
+            </svg>
+            Schedule
+          </button>
+        )}
       </div>
       <p className="text-xs mt-0.5 ml-3.5" style={{ color: '#94a3b8' }}>{msg}</p>
     </div>
