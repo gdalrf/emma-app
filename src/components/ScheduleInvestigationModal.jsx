@@ -84,10 +84,14 @@ export default function ScheduleInvestigationModal({ incident, onClose, onSucces
         body: JSON.stringify(eventDetails),
       });
 
-      if (!res.ok) throw new Error(`API error ${res.status}`);
+      if (!res.ok) {
+        let msg = `Server error ${res.status}`;
+        try { const j = await res.json(); msg = j.error ?? msg; } catch {}
+        throw new Error(msg);
+      }
       onSuccess();
-    } catch {
-      setError('Could not connect to Google Calendar — please try again');
+    } catch (err) {
+      setError(err.message || 'Could not connect to Google Calendar — please try again');
     } finally {
       setLoading(false);
     }
