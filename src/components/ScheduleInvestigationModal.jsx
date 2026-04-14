@@ -1,7 +1,5 @@
 import { useState } from 'react';
 
-const CALENDAR_MCP_URL = 'https://calendarmcp.googleapis.com/mcp/v1';
-
 function getNextWorkingHour() {
   const now = new Date();
   const next = new Date(now);
@@ -63,9 +61,6 @@ export default function ScheduleInvestigationModal({ incident, onClose, onSucces
     setLoading(true);
     setError(null);
     try {
-      const apiKey = import.meta.env.VITE_ANTHROPIC_API_KEY;
-      if (!apiKey) throw new Error('API key not configured');
-
       const startISO = `${date}T${time}:00`;
       const endDt    = new Date(`${date}T${time}:00`);
       endDt.setMinutes(endDt.getMinutes() + duration);
@@ -83,27 +78,10 @@ export default function ScheduleInvestigationModal({ incident, onClose, onSucces
           .map(email => ({ email })),
       };
 
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
+      const res = await fetch('/api/schedule-investigation', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-beta': 'mcp-client-2025-04-04',
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [
-            {
-              role: 'user',
-              content: `Create a Google Calendar event with these details: ${JSON.stringify(eventDetails)}`,
-            },
-          ],
-          mcp_servers: [
-            { type: 'url', url: CALENDAR_MCP_URL, name: 'google-calendar' },
-          ],
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventDetails),
       });
 
       if (!res.ok) throw new Error(`API error ${res.status}`);
